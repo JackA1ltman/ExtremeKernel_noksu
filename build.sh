@@ -14,9 +14,9 @@ unset_flags()
     cat << EOF
 Usage: $(basename "$0") [options]
 Options:
-    -m, --model [value]      Specify the model code of the phone
-    -k, --ksu [Y/n]          Include KernelSU
-    -d, --debug [y/N]        Force SELinux status to permissive and add superuser driver, DO NOT USE UNLESS A DEV!
+    -m, --model [value]     Specify the model code of the phone
+    -k, --ksu [Y/n]         Include KernelSU
+    -r, --recovery [y/N]    Compile kernel for an Android Recovery
 EOF
 }
 
@@ -30,8 +30,8 @@ while [[ $# -gt 0 ]]; do
             KSU_OPTION="$2"
             shift 2
             ;;
-        --debug|-d)
-            DEBUG_OPTION="$2"
+        --recovery|-r)
+            RECOVERY_OPTION="$2"
             shift 2
             ;;
         *)\
@@ -118,12 +118,17 @@ d2xks)
     exit
 esac
 
-if [[ "$KSU_OPTION" != "n" ]]; then
-    KSU=ksu.config
+if [[ "$RECOVERY_OPTION" == "y" ]]; then
+    RECOVERY=recovery.config
+    KSU_OPTION=n
 fi
 
-if [[ "$DEBUG_OPTION" == "y" ]]; then
-    DEBUG=debug.config
+if [ -z $KSU_OPTION ]; then
+    read -p "Include KernelSU (y/N): " KSU_OPTION
+fi
+
+if [[ "$KSU_OPTION" == "y" ]]; then
+    KSU=ksu.config
 fi
 
 rm -rf build/out/$MODEL
@@ -133,23 +138,24 @@ mkdir -p build/out/$MODEL/zip/META-INF/com/google/android
 # Build kernel image
 echo "-----------------------------------------------"
 echo "Defconfig: "$KERNEL_DEFCONFIG""
+
 if [ -z "$KSU" ]; then
     echo "KSU: No"
 else
     echo "KSU: Yes"
 fi
 
-if [ -z "$DEBUG" ]; then
-    echo "DEBUG: No"
+if [ -z "$RECOVERY" ]; then
+    echo "Recovery: N"
 else
-    echo "DEBUG: Yes"
+    echo "Recovery: Y"
 fi
 
 echo "-----------------------------------------------"
 echo "Building kernel using "$KERNEL_DEFCONFIG""
 echo "Generating configuration file..."
 echo "-----------------------------------------------"
-make ${MAKE_ARGS} -j$CORES exynos9820_defconfig $MODEL.config $KSU $DEBUG || abort
+make ${MAKE_ARGS} -j$CORES exynos9820_defconfig $MODEL.config $KSU $RECOVERY || abort
 
 echo "Building kernel..."
 echo "-----------------------------------------------"
@@ -196,52 +202,54 @@ echo "-----------------------------------------------"
 ./toolchain/mkdtimg cfg_create build/out/$MODEL/dtbo.img build/dtconfigs/$MODEL.cfg -d out/arch/arm64/boot/dts/samsung
 echo "-----------------------------------------------"
 
-# Build ramdisk
-echo "Building RAMDisk..."
-echo "-----------------------------------------------"
-pushd build/ramdisk > /dev/null
-find . ! -name . | LC_ALL=C sort | cpio -o -H newc -R root:root | gzip > ../out/$MODEL/ramdisk.cpio.gz || abort
-popd > /dev/null
-echo "-----------------------------------------------"
+if [ -z "$RECOVERY" ]; then
+    # Build ramdisk
+    echo "Building RAMDisk..."
+    echo "-----------------------------------------------"
+    pushd build/ramdisk > /dev/null
+    find . ! -name . | LC_ALL=C sort | cpio -o -H newc -R root:root | gzip > ../out/$MODEL/ramdisk.cpio.gz || abort
+    popd > /dev/null
+    echo "-----------------------------------------------"
 
-# Create boot image
-echo "Creating boot image..."
-echo "-----------------------------------------------"
-./toolchain/mkbootimg --base $BASE --board $BOARD --cmdline "$CMDLINE" --hashtype $HASHTYPE \
---header_version $HEADER_VERSION --kernel $KERNEL_PATH --kernel_offset $KERNEL_OFFSET \
---os_patch_level $OS_PATCH_LEVEL --os_version $OS_VERSION --pagesize $PAGESIZE \
---ramdisk $RAMDISK --ramdisk_offset $RAMDISK_OFFSET --second_offset $SECOND_OFFSET \
---tags_offset $TAGS_OFFSET -o $OUTPUT_FILE || abort
+    # Create boot image
+    echo "Creating boot image..."
+    echo "-----------------------------------------------"
+    ./toolchain/mkbootimg --base $BASE --board $BOARD --cmdline "$CMDLINE" --hashtype $HASHTYPE \
+    --header_version $HEADER_VERSION --kernel $KERNEL_PATH --kernel_offset $KERNEL_OFFSET \
+    --os_patch_level $OS_PATCH_LEVEL --os_version $OS_VERSION --pagesize $PAGESIZE \
+    --ramdisk $RAMDISK --ramdisk_offset $RAMDISK_OFFSET --second_offset $SECOND_OFFSET \
+    --tags_offset $TAGS_OFFSET -o $OUTPUT_FILE || abort
 
-# Build zip
-echo "Building zip..."
-echo "-----------------------------------------------"
-cp build/out/$MODEL/boot.img build/out/$MODEL/zip/files/boot.img
-cp build/out/$MODEL/dtb.img build/out/$MODEL/zip/files/dtb.img
-cp build/out/$MODEL/dtbo.img build/out/$MODEL/zip/files/dtbo.img
-cp build/update-binary build/out/$MODEL/zip/META-INF/com/google/android/update-binary
-cp build/updater-script build/out/$MODEL/zip/META-INF/com/google/android/updater-script
+    # Build zip
+    echo "Building zip..."
+    echo "-----------------------------------------------"
+    cp build/out/$MODEL/boot.img build/out/$MODEL/zip/files/boot.img
+    cp build/out/$MODEL/dtb.img build/out/$MODEL/zip/files/dtb.img
+    cp build/out/$MODEL/dtbo.img build/out/$MODEL/zip/files/dtbo.img
+    cp build/update-binary build/out/$MODEL/zip/META-INF/com/google/android/update-binary
+    cp build/updater-script build/out/$MODEL/zip/META-INF/com/google/android/updater-script
 
-version=$(grep -o 'CONFIG_LOCALVERSION="[^"]*"' arch/arm64/configs/exynos9820_defconfig | cut -d '"' -f 2)
+    version=$(grep -o 'CONFIG_LOCALVERSION="[^"]*"' arch/arm64/configs/exynos9820_defconfig | cut -d '"' -f 2)
 
-version=${version:1}
+    version=${version:1}
 
-if [ "$SOC" == "exynos9825" ]; then
-    version="${version}-N10"
-else
-    version="${version}-S10"
+    if [ "$SOC" == "exynos9825" ]; then
+        version="${version}-N10"
+    else
+        version="${version}-S10"
+    fi
+
+    pushd build/out/$MODEL/zip > /dev/null
+    DATE=`date +"%d-%m-%Y_%H-%M-%S"`    
+
+    if [[ "$KSU_OPTION" == "y" ]]; then
+        NAME="$version"_"$MODEL"_UNOFFICIAL_KSU_"$DATE".zip
+    else
+        NAME="$version"_"$MODEL"_UNOFFICIAL_"$DATE".zip
+    fi
+    zip -r ../"$NAME" .
+    popd > /dev/null
 fi
 
-pushd build/out/$MODEL/zip > /dev/null
-DATE=`date +"%d-%m-%Y_%H-%M-%S"`    
-
-if [[ "$KSU_OPTION" == "y" ]]; then
-    NAME="$version"_"$MODEL"_UNOFFICIAL_KSU_"$DATE".zip
-else
-    NAME="$version"_"$MODEL"_UNOFFICIAL_"$DATE".zip
-fi
-zip -r ../"$NAME" .
 popd > /dev/null
-popd > /dev/null
-
 echo "Build finished successfully!"
