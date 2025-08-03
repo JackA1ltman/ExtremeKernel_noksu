@@ -42,7 +42,7 @@ jobs:
           rm -rf KernelSU-Next
           git submodule update --init --recursive --remote
       - name: Build for d1
-        run: ./workflows.sh -m d1 -k Y -d N
+        run: ./workflows.sh -m d1 -k Y -r N
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
@@ -62,7 +62,7 @@ jobs:
           rm -rf KernelSU-Next
           git submodule update --init --recursive --remote
       - name: Build for d1xks
-        run: ./workflows.sh -m d1xks -k Y -d N
+        run: ./workflows.sh -m d1xks -k Y -r N
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
@@ -82,7 +82,7 @@ jobs:
           rm -rf KernelSU-Next
           git submodule update --init --recursive --remote
       - name: Build for d2s
-        run: ./workflows.sh -m d2s -k Y -d N
+        run: ./workflows.sh -m d2s -k Y -r N
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
@@ -102,7 +102,7 @@ jobs:
           rm -rf KernelSU-Next
           git submodule update --init --recursive --remote
       - name: Build for d2x
-        run: ./workflows.sh -m d2x -k Y -d N
+        run: ./workflows.sh -m d2x -k Y -r N
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
@@ -122,7 +122,7 @@ jobs:
           rm -rf KernelSU-Next
           git submodule update --init --recursive --remote
       - name: Build for d2xks
-        run: ./workflows.sh -m d2xks -k Y -d N
+        run: ./workflows.sh -m d2xks -k Y -r N
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
