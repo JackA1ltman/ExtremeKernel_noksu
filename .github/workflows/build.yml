@@ -39,8 +39,8 @@ jobs:
           submodules: 'recursive'
       - name: Update submodules
         run: |
-          rm -rf KernelSU-Next
-          git submodule update --init --recursive --remote
+          git submodule update --init --recursive
+          git submodule update --remote
       - name: Build for d1
         run: ./workflows.sh -m d1 -k Y -r N
       - name: Upload artifact
@@ -59,8 +59,8 @@ jobs:
           submodules: 'recursive'
       - name: Update submodules
         run: |
-          rm -rf KernelSU-Next
-          git submodule update --init --recursive --remote
+          git submodule update --init --recursive
+          git submodule update --remote
       - name: Build for d1xks
         run: ./workflows.sh -m d1xks -k Y -r N
       - name: Upload artifact
@@ -79,8 +79,8 @@ jobs:
           submodules: 'recursive'
       - name: Update submodules
         run: |
-          rm -rf KernelSU-Next
-          git submodule update --init --recursive --remote
+          git submodule update --init --recursive
+          git submodule update --remote
       - name: Build for d2s
         run: ./workflows.sh -m d2s -k Y -r N
       - name: Upload artifact
@@ -99,8 +99,8 @@ jobs:
           submodules: 'recursive'
       - name: Update submodules
         run: |
-          rm -rf KernelSU-Next
-          git submodule update --init --recursive --remote
+          git submodule update --init --recursive
+          git submodule update --remote
       - name: Build for d2x
         run: ./workflows.sh -m d2x -k Y -r N
       - name: Upload artifact
@@ -119,8 +119,8 @@ jobs:
           submodules: 'recursive'
       - name: Update submodules
         run: |
-          rm -rf KernelSU-Next
-          git submodule update --init --recursive --remote
+          git submodule update --init --recursive
+          git submodule update --remote
       - name: Build for d2xks
         run: ./workflows.sh -m d2xks -k Y -r N
       - name: Upload artifact
