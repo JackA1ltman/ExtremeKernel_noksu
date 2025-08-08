@@ -79,8 +79,8 @@ jobs:
           submodules: 'recursive'
       - name: Update submodules
         run: |
-          git submodule update --init --recursive
-          git submodule update --remote
+          git submodule sync --recursive
+          git submodule update --init --force --recursive
       - name: Build for d2s
         run: ./workflows.sh -m d2s -k Y -r N
       - name: Upload artifact
